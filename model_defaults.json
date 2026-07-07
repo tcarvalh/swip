@@ -1,0 +1,13 @@
+{
+  "bp_exponent": 1.0,
+  "wind_k": 0.9,
+  "spread_rate": 1.0,
+  "local_score_threshold": 0.007,
+  "cost_decay_lambda": 0.04,
+  "wind_support_min": 0.25,
+  "wind_support_max": 1.75,
+  "max_cumulative_cost": null,
+  "rh_full_support": 15.0,
+  "rh_extinction_like": 70.0,
+  "moisture_support_floor": 0.05
+}

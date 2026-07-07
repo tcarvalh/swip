@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+
+# Local runtime outputs and uploads
+WIPP1_Runtime/
+uploads/
+outputs/
+
+# Large calibration datasets/results are intentionally kept out of the app repo.
+calibration/
+scripts/
+WIPP2_calibration_note.md
+
+# Local archives and OS artifacts
+*.zip
+__MACOSX/
+.DS_Store
+Thumbs.db
+
+# Local environments/secrets
+.venv/
+venv/
+.env
+*.env
