@@ -446,8 +446,23 @@
     const omRhName = { value: '' };
     let omPollTimer = null;
 
+    async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          throw new Error('The SWIP backend did not respond in time. Restart app.py and try again.');
+        }
+        throw err;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
     async function fetchFirstFile(url, key) {
-      const response = await fetch(url);
+      const response = await fetchWithTimeout(url);
       if (!response.ok) {
         throw new Error(`Failed to load ${key}.`);
       }
@@ -461,7 +476,7 @@
 
     async function fetchOptionalFirstFile(url, key) {
       try {
-        const response = await fetch(url);
+        const response = await fetchWithTimeout(url);
         if (!response.ok) {
           return '';
         }
@@ -487,7 +502,7 @@
     }
 
     async function fetchOpenMeteoStatus() {
-      const response = await fetch(openMeteoStatusUrl);
+      const response = await fetchWithTimeout(openMeteoStatusUrl);
       if (!response.ok) {
         throw new Error('Failed to get Open-Meteo build status.');
       }
@@ -544,7 +559,7 @@
     }
 
     async function requestOpenMeteoBuild(options) {
-      const response = await fetch(openMeteoBuildUrl, {
+      const response = await fetchWithTimeout(openMeteoBuildUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(options)
@@ -643,9 +658,8 @@
 
     initializeWeatherInputs();
     setOpenMeteoProgress(0, 'Checking Open-Meteo raster cache...');
-    loadDefaultRasters().then(() => {
-      initOpenMeteoStatus();
-    });
+    loadDefaultRasters();
+    initOpenMeteoStatus();
 
     loadWeatherBtn.addEventListener('click', async () => {
       try {

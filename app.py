@@ -639,4 +639,11 @@ def run_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    debug_enabled = os.environ.get("SWIP_DEBUG", "").strip().lower() in {"1", "true", "yes"}
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=debug_enabled,
+        threaded=True,
+        use_reloader=debug_enabled,
+    )
