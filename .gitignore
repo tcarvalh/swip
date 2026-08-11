@@ -2,7 +2,7 @@ __pycache__/
 *.py[cod]
 
 # Local runtime outputs and uploads
-WIPP1_Runtime/
+SWIP_Runtime/
 uploads/
 outputs/
 presentation_assets/
