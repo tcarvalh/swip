@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EDGAR WIPP 2.0</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #2c3438;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      background: #dce8f4;
+    }
+
+    #topbar {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      height: 72px;
+      padding: 0 24px;
+      color: #ffffff;
+      background:
+        linear-gradient(120deg, rgba(0, 123, 220, 0.95), rgba(0, 91, 157, 0.98)),
+        linear-gradient(60deg, transparent 0 24%, rgba(255, 255, 255, 0.12) 24% 27%, transparent 27% 55%, rgba(255, 255, 255, 0.08) 55% 59%, transparent 59%);
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+      z-index: 2;
+    }
+
+    #topbar::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(30deg, transparent 0 16%, rgba(255, 255, 255, 0.08) 16% 17%, transparent 17% 43%, rgba(255, 255, 255, 0.09) 43% 45%, transparent 45%),
+        linear-gradient(150deg, transparent 0 34%, rgba(255, 255, 255, 0.06) 34% 37%, transparent 37%);
+      pointer-events: none;
+    }
+
+    .brand-mark {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 2px solid rgba(255, 226, 82, 0.9);
+      border-radius: 999px;
+      color: #e9f7ff;
+      background: rgba(0, 70, 120, 0.85);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-title {
+      position: relative;
+      z-index: 1;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      position: relative;
+      z-index: 1;
+      margin-left: 8px;
+      padding-left: 14px;
+      border-left: 1px solid rgba(255, 255, 255, 0.42);
+      font-size: 14px;
+      font-weight: 700;
+      opacity: 0.92;
+    }
+
+    .user-dot {
+      position: relative;
+      z-index: 1;
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(255, 255, 255, 0.94);
+      border-radius: 999px;
+    }
+
+    .user-dot::before,
+    .user-dot::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 2px solid #ffffff;
+    }
+
+    .user-dot::before {
+      top: 5px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+    }
+
+    .user-dot::after {
+      bottom: 4px;
+      width: 16px;
+      height: 9px;
+      border-bottom: 0;
+      border-radius: 999px 999px 0 0;
+    }
+
+    .header-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-left: auto;
+    }
+
+    #app-shell {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    #controls {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 390px;
+      min-width: 390px;
+      padding: 22px 16px;
+      overflow-y: auto;
+      border-right: 1px solid #b9cadb;
+      background: #d9e7f4;
+      font-size: 14px;
+    }
+
+    .panel-heading h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      color: #263138;
+    }
+
+    .panel-heading p {
+      margin: 5px 0 0;
+      color: #66727c;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .control-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 14px;
+      border: 1px solid #cfdce8;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 1px 4px rgba(35, 49, 58, 0.08);
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #2c3438;
+    }
+
+    .section-hint {
+      font-size: 13px;
+      font-weight: 400;
+      color: #53625d;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field input {
+      font-size: 13px;
+    }
+
+    .section-row,
+    .om-tools,
+    .ignition-tools {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .om-subfield {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .om-subfield input,
+    .om-subfield select {
+      height: 38px;
+      border: 1px solid #cfd8e2;
+      border-radius: 5px;
+      background: #ffffff;
+      font-size: 13px;
+      padding: 0 6px;
+    }
+
+    #loadWeatherBtn,
+    #currentWeatherBtn {
+      height: 38px;
+      border: 1px solid #cfd8e2;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #41484f;
+      font-size: 13px;
+      padding: 0 10px;
+    }
+
+    #om_progress {
+      width: 100%;
+      height: 9px;
+      accent-color: #6550c8;
+    }
+
+    #om_progress_label {
+      width: 100%;
+      font-size: 12px;
+      color: #444;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    button {
+      height: 30px;
+      font-size: 13px;
+      padding: 0 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: 1px solid #cfd8e2;
+      background: #ffffff;
+    }
+
+    #runBtn {
+      width: 58px;
+      height: 58px;
+      padding: 0;
+      border: 2px solid #0a642f;
+      border-radius: 999px;
+      color: #ffffff;
+      background: #128840;
+      font-weight: 700;
+      box-shadow: 0 4px 0 #0a642f, 0 7px 14px rgba(0, 0, 0, 0.2);
+    }
+
+    #runBtn:hover:not(:disabled) {
+      background: #1a9659;
+    }
+
+    #runBtn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #0d5d38, 0 3px 8px rgba(0, 0, 0, 0.18);
+    }
+
+    #runBtn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      box-shadow: none;
+    }
+
+    #clearIgnBtn {
+      height: 38px;
+    }
+
+    #status {
+      display: block;
+      width: 100%;
+      color: #4d5861;
+      line-height: 1.25;
+    }
+
+    #status:empty {
+      display: none;
+    }
+
+    .run-action {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-left: 14px;
+    }
+
+    .file-picker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .file-picker input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    .file-button {
+      display: inline-flex;
+      align-items: center;
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid #cfd8e2;
+      border-radius: 5px;
+      background: #ffffff;
+      color: #41484f;
+      cursor: pointer;
+    }
+
+    .file-hint {
+      color: #5d6872;
+      font-size: 13px;
+    }
+
+    #map {
+      flex: 1;
+      min-height: 0;
+    }
+
+    input[type="file"] {
+      max-width: 100%;
+    }
+
+    @media (max-width: 860px) {
+      #app-shell {
+        flex-direction: column;
+      }
+
+      #controls {
+        width: auto;
+        min-width: 0;
+        max-height: 46vh;
+      }
+
+      #map {
+        min-height: 54vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <div class="brand-mark">DOE</div>
+    <div class="brand-title">EDGAR</div>
+    <div class="brand-subtitle">WIPP 2.0</div>
+    <div class="header-actions">
+      <div class="user-dot" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <div id="app-shell">
+    <form id="controls">
+      <div class="panel-heading">
+        <h1>WIPP Controls</h1>
+        <p>Wildfire ignition perimeter projection</p>
+      </div>
+
+      <div class="control-section weather-section">
+        <div class="section-title">Select Weather:</div>
+        <div class="om-tools">
+          <div class="om-subfield">
+            <label for="weather_date">Date</label>
+            <input id="weather_date" type="date" />
+          </div>
+          <div class="om-subfield">
+            <label for="weather_hour">Hour (UTC)</label>
+            <select id="weather_hour"></select>
+          </div>
+          <button id="loadWeatherBtn" type="button">Load Selected Weather</button>
+          <button id="currentWeatherBtn" type="button">Current Weather</button>
+          <progress id="om_progress" value="0" max="100"></progress>
+          <span id="om_progress_label">Not started.</span>
+        </div>
+      </div>
+
+      <div class="control-section ignition-section">
+        <div class="section-title">Ignition</div>
+        <div class="section-hint">click ignition point on map or upload</div>
+        <div class="ignition-tools">
+          <div class="file-picker">
+            <label class="file-button" for="ignition_file">Choose File</label>
+            <input id="ignition_file" name="ignition_file" type="file" accept=".zip,.gpkg,.geojson,.json" />
+            <span class="file-hint">(.zip/.gpkg/.geojson)</span>
+          </div>
+          <button id="clearIgnBtn" type="button">Clear Ignition</button>
+        </div>
+      </div>
+
+      <div class="run-action">
+        <button id="runBtn" type="submit">Run</button>
+        <span id="status"></span>
+      </div>
+
+      <input id="bp_name" name="bp_name" type="hidden" />
+      <input id="u_name" name="u_name" type="hidden" />
+      <input id="v_name" name="v_name" type="hidden" />
+      <input id="ignition_lat" name="ignition_lat" type="hidden" />
+      <input id="ignition_lng" name="ignition_lng" type="hidden" />
+    </form>
+
+    <div id="map"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const map = L.map('map').setView([35.96, -83.92], 10);
+    let ignitionMarker = null;
+    let outputLayer = null;
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const form = document.getElementById('controls');
+    const statusEl = document.getElementById('status');
+    const runBtn = document.getElementById('runBtn');
+    const clearIgnBtn = document.getElementById('clearIgnBtn');
+    const ignitionFileInput = document.getElementById('ignition_file');
+    const ignLatInput = document.getElementById('ignition_lat');
+    const ignLngInput = document.getElementById('ignition_lng');
+    const bpNameInput = document.getElementById('bp_name');
+    const uNameInput = document.getElementById('u_name');
+    const vNameInput = document.getElementById('v_name');
+    const weatherDateInput = document.getElementById('weather_date');
+    const weatherHourInput = document.getElementById('weather_hour');
+    const loadWeatherBtn = document.getElementById('loadWeatherBtn');
+    const currentWeatherBtn = document.getElementById('currentWeatherBtn');
+    const omProgressEl = document.getElementById('om_progress');
+    const omProgressLabelEl = document.getElementById('om_progress_label');
+
+    const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:5000' : '';
+    const runUrl = `${apiBase}/run`;
+    const openMeteoBuildUrl = `${apiBase}/openmeteo/build`;
+    const openMeteoStatusUrl = `${apiBase}/openmeteo/build-status`;
+    const omUName = { value: '' };
+    const omVName = { value: '' };
+    const omRhName = { value: '' };
+    let omPollTimer = null;
+
+    async function fetchFirstFile(url, key) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to load ${key}.`);
+      }
+      const data = await response.json();
+      const files = Array.isArray(data[key]) ? data[key] : [];
+      if (files.length === 0) {
+        throw new Error(`No files found for ${key}.`);
+      }
+      return files[0];
+    }
+
+    async function fetchOptionalFirstFile(url, key) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          return '';
+        }
+        const data = await response.json();
+        const files = Array.isArray(data[key]) ? data[key] : [];
+        return files.length > 0 ? files[0] : '';
+      } catch (_) {
+        return '';
+      }
+    }
+
+    function setOpenMeteoProgress(progress, message) {
+      const pct = Math.max(0, Math.min(100, Number(progress) || 0));
+      omProgressEl.value = pct;
+      omProgressLabelEl.textContent = `${Math.round(pct)}% ${message || ''}`.trim();
+    }
+
+    function stopOpenMeteoPolling() {
+      if (omPollTimer) {
+        clearInterval(omPollTimer);
+        omPollTimer = null;
+      }
+    }
+
+    async function fetchOpenMeteoStatus() {
+      const response = await fetch(openMeteoStatusUrl);
+      if (!response.ok) {
+        throw new Error('Failed to get Open-Meteo build status.');
+      }
+      return response.json();
+    }
+
+    async function refreshOpenMeteoFiles() {
+      const [omUFile, omVFile, omRhFile] = await Promise.all([
+        fetchOptionalFirstFile(`${apiBase}/openmeteo-u-files`, 'openmeteo_u_files'),
+        fetchOptionalFirstFile(`${apiBase}/openmeteo-v-files`, 'openmeteo_v_files'),
+        fetchOptionalFirstFile(`${apiBase}/openmeteo-rh-files`, 'openmeteo_rh_files')
+      ]);
+
+      omUName.value = omUFile;
+      omVName.value = omVFile;
+      omRhName.value = omRhFile;
+      uNameInput.value = omUFile;
+      vNameInput.value = omVFile;
+
+      runBtn.disabled = !(bpNameInput.value && omUFile && omVFile);
+    }
+
+    function applyOpenMeteoStatus(status) {
+      const state = status && status.state ? status.state : 'idle';
+      const message = status && status.error ? `Error: ${status.error}` : (status && status.message ? status.message : 'Not started.');
+      const progress = status && Number.isFinite(Number(status.progress)) ? Number(status.progress) : 0;
+      setOpenMeteoProgress(progress, message);
+      const isRunning = state === 'running';
+      loadWeatherBtn.disabled = isRunning;
+      currentWeatherBtn.disabled = isRunning;
+      weatherDateInput.disabled = isRunning;
+      weatherHourInput.disabled = isRunning;
+    }
+
+    function startOpenMeteoPolling() {
+      if (omPollTimer) {
+        return;
+      }
+      omPollTimer = setInterval(async () => {
+        try {
+          const status = await fetchOpenMeteoStatus();
+          applyOpenMeteoStatus(status);
+          if (status.state === 'ready') {
+            await refreshOpenMeteoFiles();
+            stopOpenMeteoPolling();
+          } else if (status.state === 'error') {
+            stopOpenMeteoPolling();
+          }
+        } catch (err) {
+          stopOpenMeteoPolling();
+          setOpenMeteoProgress(0, `Error: ${err.message}`);
+        }
+      }, 1000);
+    }
+
+    async function requestOpenMeteoBuild(options) {
+      const response = await fetch(openMeteoBuildUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options)
+      });
+      if (!response.ok) {
+        throw new Error('Failed to start Open-Meteo raster generation.');
+      }
+      return response.json();
+    }
+
+    async function initOpenMeteoStatus() {
+      try {
+        const status = await fetchOpenMeteoStatus();
+        applyOpenMeteoStatus(status);
+        if (status.state === 'ready') {
+          await refreshOpenMeteoFiles();
+          return;
+        }
+        if (status.state === 'running') {
+          startOpenMeteoPolling();
+          return;
+        }
+        if (!status.cache_available) {
+          setOpenMeteoProgress(0, 'Select a date and hour or click Current Weather.');
+        }
+      } catch (err) {
+        setOpenMeteoProgress(0, `Error: ${err.message}`);
+      }
+    }
+
+    async function startOpenMeteoBuild(targetHour) {
+      stopOpenMeteoPolling();
+      omUName.value = '';
+      omVName.value = '';
+      omRhName.value = '';
+      uNameInput.value = '';
+      vNameInput.value = '';
+      runBtn.disabled = true;
+
+      try {
+        const status = await requestOpenMeteoBuild({
+          force: true,
+          use_current: !targetHour,
+          target_hour: targetHour || null
+        });
+        applyOpenMeteoStatus(status);
+        startOpenMeteoPolling();
+      } catch (err) {
+        setOpenMeteoProgress(0, `Error: ${err.message}`);
+      }
+    }
+
+    function buildSelectedWeatherHour() {
+      const dateValue = weatherDateInput.value;
+      const hourValue = weatherHourInput.value;
+      if (!dateValue) {
+        throw new Error('Select a weather date.');
+      }
+      if (hourValue === '') {
+        throw new Error('Select a weather hour.');
+      }
+      return `${dateValue}T${String(hourValue).padStart(2, '0')}:00`;
+    }
+
+    async function loadDefaultRasters() {
+      try {
+        runBtn.disabled = true;
+        const bpFile = await fetchFirstFile(`${apiBase}/bp-files`, 'bp_files');
+
+        bpNameInput.value = bpFile;
+        uNameInput.value = '';
+        vNameInput.value = '';
+        omUName.value = '';
+        omVName.value = '';
+        omRhName.value = '';
+
+        runBtn.disabled = true;
+      } catch (err) {
+        runBtn.disabled = true;
+        statusEl.textContent = `Error loading local rasters: ${err.message}`;
+      }
+    }
+
+    function initializeWeatherInputs() {
+      const now = new Date();
+      const utcDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+      weatherDateInput.value = utcDate.toISOString().slice(0, 10);
+      for (let hour = 0; hour < 24; hour += 1) {
+        const option = document.createElement('option');
+        option.value = String(hour).padStart(2, '0');
+        option.textContent = `${String(hour).padStart(2, '0')}:00`;
+        weatherHourInput.appendChild(option);
+      }
+      weatherHourInput.value = String(now.getUTCHours()).padStart(2, '0');
+    }
+
+    initializeWeatherInputs();
+    setOpenMeteoProgress(0, 'Checking Open-Meteo raster cache...');
+    loadDefaultRasters().then(() => {
+      initOpenMeteoStatus();
+    });
+
+    loadWeatherBtn.addEventListener('click', async () => {
+      try {
+        const targetHour = buildSelectedWeatherHour();
+        await startOpenMeteoBuild(targetHour);
+      } catch (err) {
+        setOpenMeteoProgress(0, `Error: ${err.message}`);
+      }
+    });
+
+    currentWeatherBtn.addEventListener('click', () => {
+      startOpenMeteoBuild(null);
+    });
+
+    function setIgnitionMarker(lat, lng) {
+      if (ignitionMarker) {
+        ignitionMarker.setLatLng([lat, lng]);
+      } else {
+        ignitionMarker = L.marker([lat, lng]).addTo(map);
+      }
+    }
+
+    async function previewIgnitionFile(file) {
+      const formData = new FormData();
+      formData.append('ignition_file', file);
+      const response = await fetch(`${apiBase}/ignition-preview`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!response.ok) {
+        let message = 'Failed to preview ignition file.';
+        try {
+          const err = await response.json();
+          if (err && err.error) {
+            message = err.error;
+          }
+        } catch (_) {}
+        throw new Error(message);
+      }
+      return response.json();
+    }
+
+    map.on('click', (e) => {
+      const lat = Number(e.latlng.lat.toFixed(6));
+      const lng = Number(e.latlng.lng.toFixed(6));
+
+      ignLatInput.value = String(lat);
+      ignLngInput.value = String(lng);
+      setIgnitionMarker(lat, lng);
+
+      statusEl.textContent = `Ignition click set: ${lat}, ${lng}`;
+    });
+
+    ignitionFileInput.addEventListener('change', async () => {
+      const hasFile = ignitionFileInput.files && ignitionFileInput.files.length > 0;
+      if (hasFile) {
+        const file = ignitionFileInput.files[0];
+        statusEl.textContent = `Previewing ignition file: ${file.name}...`;
+        try {
+          const preview = await previewIgnitionFile(file);
+          const lat = Number(preview.lat);
+          const lng = Number(preview.lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            setIgnitionMarker(lat, lng);
+            map.setView([lat, lng], Math.max(map.getZoom(), 10));
+          }
+          statusEl.textContent = `Ignition file selected: ${file.name}. Pin placed from uploaded ignition.`;
+        } catch (err) {
+          statusEl.textContent = `Error previewing ignition file: ${err.message}`;
+        }
+      } else if (ignLatInput.value && ignLngInput.value) {
+        statusEl.textContent = `Ignition click set: ${ignLatInput.value}, ${ignLngInput.value}`;
+      } else {
+        if (ignitionMarker) {
+          map.removeLayer(ignitionMarker);
+          ignitionMarker = null;
+        }
+        statusEl.textContent = '';
+      }
+    });
+
+    clearIgnBtn.addEventListener('click', () => {
+      ignLatInput.value = '';
+      ignLngInput.value = '';
+      if (ignitionMarker) {
+        map.removeLayer(ignitionMarker);
+        ignitionMarker = null;
+      }
+      statusEl.textContent = ignitionFileInput.files && ignitionFileInput.files.length > 0
+        ? `Ignition file selected: ${ignitionFileInput.files[0].name}. Map click is optional.`
+        : '';
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      if (!bpNameInput.value || !uNameInput.value || !vNameInput.value) {
+        statusEl.textContent = 'Open-Meteo wind U/V rasters are not ready yet. Wait for the build to finish, or load current or selected weather.';
+        return;
+      }
+
+      const hasIgnitionFile = ignitionFileInput.files && ignitionFileInput.files.length > 0;
+      const hasClickedIgnition = Boolean(ignLatInput.value && ignLngInput.value);
+
+      if (!hasIgnitionFile && !hasClickedIgnition) {
+        statusEl.textContent = 'Set an ignition point by clicking the map or upload an ignition file.';
+        return;
+      }
+
+      runBtn.disabled = true;
+      statusEl.textContent = 'Running model...';
+
+      try {
+        const formData = new FormData(form);
+        const response = await fetch(runUrl, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          let message = 'Run failed.';
+          try {
+            const err = await response.json();
+            if (err && err.error) {
+              message = err.error;
+            }
+          } catch (_) {}
+          throw new Error(message);
+        }
+
+        const data = await response.json();
+        const geojson = data.geojson;
+        const totalAreaAcres = Number(data.total_area_acres || 0);
+
+        if (outputLayer) {
+          map.removeLayer(outputLayer);
+          outputLayer = null;
+        }
+
+        outputLayer = L.geoJSON(geojson, {
+          style: {
+            color: '#d62828',
+            weight: 1,
+            fillColor: '#d62828',
+            fillOpacity: 0.35
+          },
+          onEachFeature: (feature, layer) => {
+            const h3Index = feature.properties && feature.properties.h3_index ? feature.properties.h3_index : 'H3 cell';
+            const h3Count = feature.properties && feature.properties.h3_cell_count ? feature.properties.h3_cell_count : 0;
+            const burned = feature.properties && feature.properties.burned_cells ? feature.properties.burned_cells : 0;
+            layer.bindPopup(`H3: ${h3Index}<br>H3 cells: ${h3Count}<br>Burned raster cells: ${burned}`);
+          }
+        }).addTo(map);
+
+        const bounds = outputLayer.getBounds();
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [20, 20] });
+        }
+
+        const count = Array.isArray(geojson.features) ? geojson.features.length : 0;
+        statusEl.textContent = `Run complete. Showing ${count} H3 res 8 burn cell(s). Total area: ${totalAreaAcres.toFixed(2)} acres.`;
+      } catch (err) {
+        const isNetworkError = err && err.message === 'Failed to fetch';
+        if (isNetworkError) {
+          statusEl.textContent = 'Error: Cannot reach backend. Run app.py and open http://127.0.0.1:5000.';
+        } else {
+          statusEl.textContent = `Error: ${err.message}`;
+        }
+      } finally {
+        runBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
