@@ -5,6 +5,7 @@ __pycache__/
 WIPP1_Runtime/
 uploads/
 outputs/
+presentation_assets/
 
 # Large calibration datasets/results are intentionally kept out of the app repo.
 calibration/
