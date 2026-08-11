@@ -24,7 +24,7 @@ BP_DIR = APP_DIR / "BP"
 OPENMETEO_U_DIR = APP_DIR / "openmeteo_windu_rast"
 OPENMETEO_V_DIR = APP_DIR / "openmeteo_windv_rast"
 OPENMETEO_RH_DIR = APP_DIR / "openmeteo_rh_rast"
-RUNTIME_DIR = Path(os.environ.get("LOCALAPPDATA", str(APP_DIR))) / "WIPP1_Runtime"
+RUNTIME_DIR = Path(os.environ.get("LOCALAPPDATA", str(APP_DIR))) / "SWIP_Runtime"
 MODEL_DEFAULTS_PATH = APP_DIR / "model_defaults.json"
 
 
